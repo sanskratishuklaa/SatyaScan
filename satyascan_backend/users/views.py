@@ -1,8 +1,45 @@
-from rest_framework import generics
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.contrib.auth import authenticate
 from .models import User
 from .serializers import UserSerializer
 
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    
+
+class RegisterView(APIView):
+
+    def post(self, request):
+        username = request.data.get("username")
+        email = request.data.get("email")
+        password = request.data.get("password")
+
+        if not username or not password:
+            return Response({"error": "username & password required"}, status=400)
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password
+        )
+
+        return Response({
+            "message": "User created",
+            "user": UserSerializer(user).data
+        }, status=201)
+
+
+class LoginView(APIView):
+
+    def post(self, request):
+        username = request.data.get("username")
+        password = request.data.get("password")
+
+        user = authenticate(username=username, password=password)
+
+        if user:
+            return Response({
+                "message": "Login successful",
+                "user": UserSerializer(user).data
+            })
+        else:
+            return Response({"error": "Invalid credentials"}, status=401)
